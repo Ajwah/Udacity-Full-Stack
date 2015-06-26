@@ -22,11 +22,30 @@ def draw_triangle(ln):
         genie.forward(ln)
         genie.right(120)
 
-
 def draw_circle(r):
     jamie = init_turtle("square","blue",6)
     jamie.circle(r)
+
     
-draw_square(50)
-draw_triangle(100)
-draw_circle(150)
+def draw_fractal(ln):
+    ben = init_turtle("triangle","black",10)
+    def draw_koch(d,ln):
+        if d > 0:
+            draw_koch(d-1,ln/2)            
+            ben.left(60)
+
+            draw_koch(d-1,ln/2)
+            ben.right(120)
+
+            draw_koch(d-1,ln/2)
+            ben.left(60)
+
+            draw_koch(d-1,ln/2)
+            
+        else: ben.forward(ln)
+    draw_koch(6,ln)
+    
+#draw_square(50)
+#draw_triangle(100)
+#draw_circle(150)
+draw_fractal(100)
