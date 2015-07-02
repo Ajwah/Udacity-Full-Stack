@@ -113,3 +113,46 @@ def swissPairings():
     for i in xrange(0,len(records),2):
         swiss_pairings.append((records[i][0], records[i][1], records[i+1][0], records[i+1][1]))
     return swiss_pairings
+
+def play():
+    pairings = swissPairings()
+    for i in xrange(0,len(pairings)):
+        if pairings[i][1] == "***":
+            reportMatch(pairings[i][2],pairings[i][0], False)
+        elif pairings[i][3] == "***":
+            reportMatch(pairings[i][0],pairings[i][2], False)
+        else:
+            outcome = random.randint(1,3)
+            if outcome == 1:
+                reportMatch(pairings[i][0],pairings[i][2], False)
+            elif outcome == 2:
+                reportMatch(pairings[i][2],pairings[i][0], False)
+            else:
+                reportMatch(pairings[i][0],pairings[i][2], True)
+
+def create_tournament():
+    deleteMatches()
+    deletePlayers()
+    registerPlayer("Twilight Sparkle")
+    registerPlayer("Fluttershy")
+    registerPlayer("Applejack")
+    registerPlayer("Pinkie Pie")
+    registerPlayer("Bruno Walton")
+    registerPlayer("Boots O'Neal")
+    registerPlayer("Cathy Burton")
+    registerPlayer("Diane Grant")
+    registerPlayer("Melpomene Murray")
+    registerPlayer("Randy Schwartz")
+    registerPlayer("Markov Chaney")
+    registerPlayer("Joe Malik")
+    registerPlayer("Mao Tsu-hsi")
+    registerPlayer("Atlanta Hope")
+    registerPlayer("Chandra Nalaar")
+    '''
+    registerPlayer("Shubacka Kabaka")
+    '''
+    play()
+
+if __name__ == '__main__':
+    create_tournament()
+
