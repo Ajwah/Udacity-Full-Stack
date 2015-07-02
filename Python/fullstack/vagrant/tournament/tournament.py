@@ -152,6 +152,82 @@ def create_tournament():
     registerPlayer("Shubacka Kabaka")
     '''
     play()
+    display("players")
+    play()
+    display("players")
+    play()
+    display("players")
+
+def display(table):
+
+    def stringify(ch, a):
+        s = ''
+        for i in xrange(0,a):
+            s += ch
+        return s
+
+    def determine_column_sizes(colnames, tableContents):
+        sizes = []
+        for i in xrange(0,len(colnames)):
+            if len(tableContents) == 0:
+                maxSize = 0
+            else:
+                maxSize = max([len(str(desc[i])) for desc in tableContents])
+            if maxSize > len(colnames[i]):
+                sizes.append(maxSize)
+            else:
+                sizes.append(len(colnames[i]))
+        return sizes
+
+    def helper_column_headings(f, colnames, s1, s2, sizes):
+        heading = ''
+        for i in xrange(0,len(colnames)):
+            t = f(colnames[i])
+            size = len(t)
+            heading += s1 + t + stringify(s1, sizes[i] - size) + s1 + s2
+        return heading
+
+    def create_title(colnames, sizes):
+        return helper_column_headings(lambda x: x, colnames, ' ', '|', sizes)
+
+    def underline_title(colnames, sizes):
+        return helper_column_headings(lambda x: stringify('-', len(x)), colnames, '-', '+', sizes)
+
+    def upperline_title(colnames, sizes):
+        return helper_column_headings(lambda x: stringify('-', len(x)), colnames, '-', '-', sizes)
+
+    def create_rows(max, tableContents, sizes):
+        rows = []
+        for i in xrange(0,len(tableContents)):
+            row = ''
+            for j in xrange(0, max):
+                spaces = stringify(' ', sizes[j] - len(str(tableContents[i][j])))
+                row += ' ' + str(tableContents[i][j]) + spaces + ' |'
+            rows.append(row)
+        return rows
+
+    def display(s):
+        spaces = '                  |'
+        print spaces + s
+
+    DB = connect()
+    c = DB.cursor()
+    c.execute("select * from %s order by wins desc" % table)
+    colnames = [desc[0] for desc in c.description] #Obtain the various column names of 'table'
+    tableContents = c.fetchall()
+    sizes = determine_column_sizes(colnames, tableContents)
+    rows = create_rows(len(colnames), tableContents, sizes)
+    line = upperline_title(colnames, sizes)
+    print ""
+    display(line)
+    display(stringify(' ', len(line) / 2 - (len(table) / 2)) + table)
+    display(line)
+    display(create_title(colnames, sizes))
+    display(underline_title(colnames, sizes))
+    for row in rows: display(row)
+    display(line)
+    print ""
+    DB.close()
 
 if __name__ == '__main__':
     create_tournament()
