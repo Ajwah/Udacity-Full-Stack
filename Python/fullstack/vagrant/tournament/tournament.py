@@ -4,6 +4,8 @@
 
 import psycopg2
 import random
+import math
+
 global_tmp = 0
 def connect():
     """Connect to the PostgreSQL database.  Returns a database connection."""
@@ -77,6 +79,14 @@ def updateOpponentHistory(matchid, player, opponent):
     DB.commit()
     DB.close()
 
+def getOpponentHistory():
+    DB = connect()
+    c = DB.cursor()
+    c.execute('select * from opponentHistory')
+    history = c.fetchall()
+    DB.close()
+    return history
+
 def playerStandings():
     """Returns a list of the players and their win records, sorted by wins.
 
@@ -134,8 +144,21 @@ def swissPairings():
         name2: the second player's name
     """
     swiss_pairings = []
+    tmpStack = []
     records = playerStandings()
+    history = getOpponentHistory()
+    #print history
     for i in xrange(0,len(records),2):
+        playerHistory = [element for element in history if element[0] == records[i][0]]
+        #print "for loop: ", records[i][0], " vs ", records[i+1][0], "Does ",records[i+1][0]," occur in list: ", playerHistory[0], any(d == records[i+1][0] for d in playerHistory[0])
+        while any(d == records[i+1][0] for d in playerHistory[0]):
+            tmpStack.append(records[i+1])
+            records.remove(records[i+1])
+            #print "        while loop:", tmpStack, records
+        if tmpStack != []:
+            records[i+2:i+2] = tmpStack
+            tmpStack = []
+
         swiss_pairings.append((records[i][0], records[i][1], records[i+1][0], records[i+1][1]))
         updateOpponentHistory(global_tmp, records[i][0], records[i+1][0])
     return swiss_pairings
@@ -177,17 +200,14 @@ def create_tournament():
     registerPlayer("Mao Tsu-hsi")
     registerPlayer("Atlanta Hope")
     registerPlayer("Chandra Nalaar")
-    '''
-    registerPlayer("Shubacka Kabaka")
-    '''
+    #registerPlayer("Shubacka Kabaka")
+
     assertEvenNumberPlayers()
     initOpponentHistory()
-    play()
-    display("players")
-    play()
-    display("players")
-    play()
-    display("players")
+
+    for i in xrange(0,int(math.floor(math.log(len(playerStandings()),2)))):
+        play()
+        display("players")
     display("opponenthistory")
 
 def display(table):
