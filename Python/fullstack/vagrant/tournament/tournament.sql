@@ -8,15 +8,15 @@
 
 drop table if exists matches;
 drop table if exists players;
+drop table if exists opponenthistory;
 
 create table matches(
-player1 text,
-player2 text
+id serial
 );
 
 create table players(
 id serial,
 name text,
-wins numeric(2,1),
+wins numeric(2,0),
 matches_played int
 );

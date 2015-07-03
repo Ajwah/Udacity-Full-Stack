@@ -4,7 +4,7 @@
 
 import psycopg2
 import random
-
+global_tmp = 0
 def connect():
     """Connect to the PostgreSQL database.  Returns a database connection."""
     return psycopg2.connect("dbname=tournament")
@@ -45,7 +45,31 @@ def registerPlayer(name):
     """
     DB = connect()
     c = DB.cursor()
-    c.execute("insert into players values (default, %s,0.0,0)",(name,))
+    c.execute("insert into players values (default, %s,0,0)",(name,))
+    DB.commit()
+    DB.close()
+
+def initOpponentHistory():
+    DB = connect()
+    c = DB.cursor()
+    c.execute("drop table if exists opponentHistory")
+    DB.commit()
+    c.execute("create table opponentHistory as select id from players")
+    DB.commit()
+    DB.close()
+
+def addColumnToOpponentHist(matchid):
+    DB = connect()
+    c = DB.cursor()
+    c.execute('alter table opponentHistory add column "%s" int',(matchid,))
+    DB.commit()
+    DB.close()
+
+def updateOpponentHistory(matchid, player, opponent):
+    DB = connect()
+    c = DB.cursor()
+    c.execute('update opponenthistory set "%(m_id)s"=%(opponent_id)s where id=%(player_id)s' % {"m_id": matchid, "opponent_id": opponent, "player_id": player})
+    c.execute('update opponenthistory set "%(m_id)s"=%(player_id)s where id=%(opponent_id)s' % {"m_id": matchid, "opponent_id": opponent, "player_id": player})
     DB.commit()
     DB.close()
 
@@ -79,13 +103,12 @@ def reportMatch(winner, loser, draw):
     DB = connect()
     c = DB.cursor()
     if draw:
-        print "draw"
-        c.execute("update players set wins = wins + 0.5 where id=%s",(winner,))
+        c.execute("update players set wins = wins + 1 where id=%s",(winner,))
         c.execute("update players set matches_played = matches_played + 1 where id=%s",(winner,))
-        c.execute("update players set wins = wins + 0.5 where id=%s",(loser,))
+        c.execute("update players set wins = wins + 1 where id=%s",(loser,))
         c.execute("update players set matches_played = matches_played + 1 where id=%s",(loser,))
     else:
-        c.execute("update players set wins = wins + 1 where id=%s",(winner,))
+        c.execute("update players set wins = wins + 3 where id=%s",(winner,))
         c.execute("update players set matches_played = matches_played + 1 where id=%s",(winner,))
         c.execute("update players set matches_played = matches_played + 1 where id=%s",(loser,))
     DB.commit()
@@ -107,14 +130,16 @@ def swissPairings():
         name2: the second player's name
     """
     swiss_pairings = []
-    if len(playerStandings()) % 2 == 1:
-        registerPlayer("***")
     records = playerStandings()
     for i in xrange(0,len(records),2):
         swiss_pairings.append((records[i][0], records[i][1], records[i+1][0], records[i+1][1]))
+        updateOpponentHistory(global_tmp, records[i][0], records[i+1][0])
     return swiss_pairings
 
 def play():
+    global global_tmp
+    global_tmp += 1
+    addColumnToOpponentHist(global_tmp)
     pairings = swissPairings()
     for i in xrange(0,len(pairings)):
         if pairings[i][1] == "***":
@@ -151,12 +176,16 @@ def create_tournament():
     '''
     registerPlayer("Shubacka Kabaka")
     '''
+    if len(playerStandings()) % 2 == 1:
+        registerPlayer("***")
+    initOpponentHistory()
     play()
     display("players")
     play()
     display("players")
     play()
     display("players")
+    display("opponenthistory")
 
 def display(table):
 
@@ -212,7 +241,10 @@ def display(table):
 
     DB = connect()
     c = DB.cursor()
-    c.execute("select * from %s order by wins desc" % table)
+    if table == "players":
+        c.execute("select * from %s order by wins desc" % table)
+    else:
+        c.execute("select * from %s" % table)
     colnames = [desc[0] for desc in c.description] #Obtain the various column names of 'table'
     tableContents = c.fetchall()
     sizes = determine_column_sizes(colnames, tableContents)
