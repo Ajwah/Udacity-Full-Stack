@@ -18,5 +18,8 @@ create table players(
 id serial,
 name text,
 wins numeric(2,0),
-matches_played int
+draws numeric(2,0),
+losses numeric(2,0),
+MW numeric(3,2),
+OMW numeric(3,2)
 );

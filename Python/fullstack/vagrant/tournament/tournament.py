@@ -47,7 +47,7 @@ def registerPlayer(name):
     """
     DB = connect()
     c = DB.cursor()
-    c.execute("insert into players values (default, %s,0,0)",(name,))
+    c.execute("insert into players values (default, %s,0,0,0, 0.00, 0.00)",(name,))
     DB.commit()
     DB.close()
 
@@ -181,6 +181,9 @@ def play():
                 reportMatch(pairings[i][2],pairings[i][0], False)
             else:
                 reportMatch(pairings[i][0],pairings[i][2], True)
+
+def calculate_MW_OMW():
+
 
 def create_tournament():
     deleteMatches()
