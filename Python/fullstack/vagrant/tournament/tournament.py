@@ -49,6 +49,10 @@ def registerPlayer(name):
     DB.commit()
     DB.close()
 
+def assertEvenNumberPlayers():
+    if len(playerStandings()) % 2 == 1:
+        registerPlayer("***")
+
 def initOpponentHistory():
     DB = connect()
     c = DB.cursor()
@@ -176,8 +180,7 @@ def create_tournament():
     '''
     registerPlayer("Shubacka Kabaka")
     '''
-    if len(playerStandings()) % 2 == 1:
-        registerPlayer("***")
+    assertEvenNumberPlayers()
     initOpponentHistory()
     play()
     display("players")
