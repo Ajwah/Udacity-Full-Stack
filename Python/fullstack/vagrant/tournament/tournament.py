@@ -5,6 +5,7 @@
 import psycopg2
 import random
 import math
+from collections import namedtuple
 
 global_tmp = 0
 def connect():
@@ -102,29 +103,31 @@ def playerStandings():
     """
     DB = connect()
     c = DB.cursor()
-    c.execute("select id, name, wins, matches_played from players order by wins desc")
+    c.execute("select id, name, wins, losses, draws, MW, OMW from players order by wins desc")
     records = c.fetchall()
     DB.close()
     return records
 
-def reportMatch(winner, loser, draw):
+def reportMatch(p1, p2, draw):
     """Records the outcome of a single match between two players.
 
     Args:
-      winner:  the id number of the player who won
-      loser:  the id number of the player who lost
+      p1:  the id number of the player who won
+      p2:  the id number of the player who lost
     """
+
+    Score = namedtuple("Score", 'Id W L D')
     DB = connect()
     c = DB.cursor()
     if draw:
-        c.execute("update players set wins = wins + 1 where id=%s",(winner,))
-        c.execute("update players set matches_played = matches_played + 1 where id=%s",(winner,))
-        c.execute("update players set wins = wins + 1 where id=%s",(loser,))
-        c.execute("update players set matches_played = matches_played + 1 where id=%s",(loser,))
+        p1s = Score(p1, 0, 0, 1)
+        p2s = Score(p2, 0, 0, 1)
     else:
-        c.execute("update players set wins = wins + 3 where id=%s",(winner,))
-        c.execute("update players set matches_played = matches_played + 1 where id=%s",(winner,))
-        c.execute("update players set matches_played = matches_played + 1 where id=%s",(loser,))
+        p1s = Score(p1, 1, 0, 0)
+        p2s = Score(p2, 0, 1, 0)
+    c.execute("update players set wins = wins + {0.W}, losses = losses + {0.L}, draws = draws + {0.D} where id={0.Id}".format(p1s))
+    c.execute("update players set wins = wins + {0.W}, losses = losses + {0.L}, draws = draws + {0.D} where id={0.Id}".format(p2s))
+
     DB.commit()
     DB.close()
 
@@ -182,7 +185,7 @@ def play():
             else:
                 reportMatch(pairings[i][0],pairings[i][2], True)
 
-def calculate_MW_OMW():
+#def calculate_MW_OMW():
 
 
 def create_tournament():
