@@ -269,13 +269,9 @@ def create_tournament():
     initOpponentHistory()
 
     for i in xrange(0,int(math.floor(math.log(len(playerStandings()),2)))):
-        print "Round ", i
         play()
         update_MW_OMW()
-        display("players")
-        display("opponenthistory")
-        display("omw")
-
+    display("players")
 
 def display(table):
 
@@ -332,7 +328,7 @@ def display(table):
     DB = connect()
     c = DB.cursor()
     if table == "players":
-        c.execute("select * from %s order by wins desc" % table)
+        c.execute("select * from players order by wins desc, omw desc")
     else:
         c.execute("select * from %s" % table)
     colnames = [desc[0] for desc in c.description] #Obtain the various column names of 'table'
