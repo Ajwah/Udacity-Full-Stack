@@ -155,9 +155,13 @@ def swissPairings():
     for i in xrange(0,len(records),2):
         playerHistory = [element for element in history if element[0] == records[i][0]]
         #print "for loop: ", records[i][0], " vs ", records[i+1][0], "Does ",records[i+1][0]," occur in list: ", playerHistory[0], any(d == records[i+1][0] for d in playerHistory[0])
-        while any(d == records[i+1][0] for d in playerHistory[0]):
+        #print i+1, len(records), len(playerHistory[0])
+        #print
+        while any(d == records[i+1][0] for d in playerHistory[0]) and (i < len(records) - 2):
+            #print 'before', i+1, len(records), len(playerHistory[0])
             tmpStack.append(records[i+1])
             records.remove(records[i+1])
+            #print i+1, len(records), len(playerHistory[0])
             #print "        while loop:", tmpStack, records
         if tmpStack != []:
             records[i+2:i+2] = tmpStack
