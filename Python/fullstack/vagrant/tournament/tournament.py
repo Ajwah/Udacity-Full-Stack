@@ -48,7 +48,7 @@ def registerPlayer(name):
     """
     DB = connect()
     c = DB.cursor()
-    c.execute("insert into players values (default, %s,0,0,0, 0.00, 0.00)",(name,))
+    c.execute("insert into players values (default, %s,0,0,0, 0.000, 0.000)",(name,))
     DB.commit()
     DB.close()
 
@@ -112,8 +112,9 @@ def reportMatch(p1, p2, draw):
     """Records the outcome of a single match between two players.
 
     Args:
-      p1:  the id number of the player who won
-      p2:  the id number of the player who lost
+      In case of no draw:
+        p1:  the id number of the player who won
+        p2:  the id number of the player who lost
     """
 
     Score = namedtuple("Score", 'Id W L D')
@@ -185,8 +186,27 @@ def play():
             else:
                 reportMatch(pairings[i][0],pairings[i][2], True)
 
-#def calculate_MW_OMW():
-
+def update_MW_OMW():
+    DB = connect()
+    c = DB.cursor()
+    c.execute("update players set MW=(wins*3+draws)/(3*(wins + losses + draws))")
+    c.execute("update players set MW=0.333 where MW<0.333")
+    DB.commit()
+    c.execute("drop table if exists omw")
+    DB.commit()
+    c.execute("create table omw as (select * from opponenthistory)")
+    DB.commit()
+    c.execute("select * from omw")
+    colnames = [desc[0] for desc in c.description]
+    del colnames[0]
+    c.execute("alter table omw add column mw numeric(5,3)")
+    c.execute("update omw t1 set mw=0.000")
+    DB.commit()
+    for col in colnames:
+        print col
+        c.execute('update omw t1 set mw=t1.mw+(t2.mw/%(tot)s) from players t2 where t2.id=t1."%(col)s"'% {"tot": len(colnames), "col": col})
+    DB.commit()
+    DB.close()
 
 def create_tournament():
     deleteMatches()
@@ -212,9 +232,13 @@ def create_tournament():
     initOpponentHistory()
 
     for i in xrange(0,int(math.floor(math.log(len(playerStandings()),2)))):
+        print "Round ", i
         play()
+        update_MW_OMW()
         display("players")
-    display("opponenthistory")
+        display("opponenthistory")
+        display("omw")
+
 
 def display(table):
 

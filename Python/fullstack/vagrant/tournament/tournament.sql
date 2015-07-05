@@ -9,6 +9,7 @@
 drop table if exists matches;
 drop table if exists players;
 drop table if exists opponenthistory;
+drop table if exists omw;
 
 create table matches(
 id serial
@@ -20,6 +21,6 @@ name text,
 wins numeric(2,0),
 losses numeric(2,0),
 draws numeric(2,0),
-MW numeric(3,2),
-OMW numeric(3,2)
+MW numeric(4,3),
+OMW numeric(4,3)
 );
