@@ -189,9 +189,16 @@ def play():
 def update_MW_OMW():
     DB = connect()
     c = DB.cursor()
+    #Update MW in players table
     c.execute("update players set MW=(wins*3+draws)/(3*(wins + losses + draws))")
     c.execute("update players set MW=0.333 where MW<0.333")
     DB.commit()
+
+    #Update OMW in players table - (In multiple mini PSQL steps)
+    #   Create a temporary table OMW as an exact copy of opponenthistory,
+    #   add column omw,
+    #   add corresponding MW of various columns contained by OMW to column omw
+    #   update players table with value of omw
     c.execute("drop table if exists omw")
     DB.commit()
     c.execute("create table omw as (select * from opponenthistory)")
@@ -199,12 +206,42 @@ def update_MW_OMW():
     c.execute("select * from omw")
     colnames = [desc[0] for desc in c.description]
     del colnames[0]
-    c.execute("alter table omw add column mw numeric(5,3)")
-    c.execute("update omw t1 set mw=0.000")
+    c.execute("alter table omw add column omw numeric(5,3)")
+    c.execute("update omw t1 set omw=0.000")
     DB.commit()
     for col in colnames:
-        print col
-        c.execute('update omw t1 set mw=t1.mw+(t2.mw/%(tot)s) from players t2 where t2.id=t1."%(col)s"'% {"tot": len(colnames), "col": col})
+        c.execute('update omw t1 set omw=t1.omw+(t2.mw/%(tot)s) from players t2 where t2.id=t1."%(col)s"'% {"tot": len(colnames), "col": col})
+    DB.commit()
+
+    #Update OMW in players table - (In one PSQL query)
+    #   First reset column OMW to 0.000
+    #   Based on table opponenthistory, update the OMW column
+
+    #Retrieve all the column names of table opponenthistory
+    c.execute("select * from opponenthistory")
+    colnames = [desc[0] for desc in c.description]
+    #Remove id column.
+    del colnames[0]
+    #reset OMW column to 0.000
+    c.execute("UPDATE players t0 SET omw=0.000")
+    DB.commit()
+    #Loop through all the columns of opponenthistory,
+    #Look up the corresponding MW value from players table
+    #Add that value to OMW column
+    #Calculate average by dividing by amount of opponents faced so far
+    for col in colnames:
+        query = '''UPDATE players t0 SET omw=(omw + (t3.mw/%(tot)s))
+                     FROM (
+                            SELECT t1.id, t2.mw FROM (
+                                                        SELECT id, "%(col)s" FROM opponenthistory
+                                                     ) AS t1,
+                                                     (
+                                                        SELECT "%(col)s", mw FROM players RIGHT OUTER JOIN opponenthistory ON (players.id=opponenthistory."%(col)s")
+                                                     ) AS t2
+                                                WHERE t1."%(col)s"=t2."%(col)s"
+                           ) AS t3
+                    WHERE t3.id=t0.id'''% {"tot": len(colnames), "col": col}
+        c.execute(query)
     DB.commit()
     DB.close()
 
