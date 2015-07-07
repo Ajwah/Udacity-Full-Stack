@@ -13,18 +13,18 @@ def connect():
     return psycopg2.connect("dbname=tournament")
 
 def deleteMatches():
-    """Remove all the match records from the database."""
+    """Remove all the match records FROM the database."""
     DB = connect()
     c = DB.cursor()
-    c.execute("delete from matches")
+    c.execute("DELETE FROM matches")
     DB.commit()
     DB.close()
 
 def deletePlayers():
-    """Remove all the player records from the database."""
+    """Remove all the player records FROM the database."""
     DB = connect()
     c = DB.cursor()
-    c.execute("delete from players")
+    c.execute("DELETE FROM players")
     DB.commit()
     DB.close()
 
@@ -32,7 +32,7 @@ def countPlayers():
     """Returns the number of players currently registered."""
     DB = connect()
     c = DB.cursor()
-    c.execute("select count(name) from players")
+    c.execute("SELECT count(name) FROM players")
     amount = c.fetchall()[0][0]
     DB.close()
     return amount
@@ -48,7 +48,7 @@ def registerPlayer(name):
     """
     DB = connect()
     c = DB.cursor()
-    c.execute("insert into players values (default, %s,0,0,0, 0.000, 0.000)",(name,))
+    c.execute("INSERT INTO players VALUES (DEFAULT, %s,0,0,0, 0.000, 0.000)",(name,))
     DB.commit()
     DB.close()
 
@@ -59,31 +59,31 @@ def assertEvenNumberPlayers():
 def initOpponentHistory():
     DB = connect()
     c = DB.cursor()
-    c.execute("drop table if exists opponentHistory")
+    c.execute("DROP TABLE IF EXISTS opponentHistory")
     DB.commit()
-    c.execute("create table opponentHistory as select id from players")
+    c.execute("CREATE TABLE opponentHistory AS SELECT id FROM players")
     DB.commit()
     DB.close()
 
 def addColumnToOpponentHist(matchid):
     DB = connect()
     c = DB.cursor()
-    c.execute('alter table opponentHistory add column "%s" int',(matchid,))
+    c.execute('ALTER TABLE opponentHistory ADD COLUMN "%s" int',(matchid,))
     DB.commit()
     DB.close()
 
 def updateOpponentHistory(matchid, player, opponent):
     DB = connect()
     c = DB.cursor()
-    c.execute('update opponenthistory set "%(m_id)s"=%(opponent_id)s where id=%(player_id)s' % {"m_id": matchid, "opponent_id": opponent, "player_id": player})
-    c.execute('update opponenthistory set "%(m_id)s"=%(player_id)s where id=%(opponent_id)s' % {"m_id": matchid, "opponent_id": opponent, "player_id": player})
+    c.execute('UPDATE opponenthistory SET "%(m_id)s"=%(opponent_id)s WHERE id=%(player_id)s' % {"m_id": matchid, "opponent_id": opponent, "player_id": player})
+    c.execute('UPDATE opponenthistory SET "%(m_id)s"=%(player_id)s WHERE id=%(opponent_id)s' % {"m_id": matchid, "opponent_id": opponent, "player_id": player})
     DB.commit()
     DB.close()
 
 def getOpponentHistory():
     DB = connect()
     c = DB.cursor()
-    c.execute('select * from opponentHistory')
+    c.execute('SELECT * FROM opponentHistory')
     history = c.fetchall()
     DB.close()
     return history
@@ -103,7 +103,7 @@ def playerStandings():
     """
     DB = connect()
     c = DB.cursor()
-    c.execute("select id, name, wins, losses, draws, MW, OMW from players order by wins desc")
+    c.execute("SELECT id, name, wins, losses, draws, MW, OMW FROM players ORDER BY wins DESC")
     records = c.fetchall()
     DB.close()
     return records
@@ -126,8 +126,8 @@ def reportMatch(p1, p2, draw):
     else:
         p1s = Score(p1, 1, 0, 0)
         p2s = Score(p2, 0, 1, 0)
-    c.execute("update players set wins = wins + {0.W}, losses = losses + {0.L}, draws = draws + {0.D} where id={0.Id}".format(p1s))
-    c.execute("update players set wins = wins + {0.W}, losses = losses + {0.L}, draws = draws + {0.D} where id={0.Id}".format(p2s))
+    c.execute("UPDATE players SET wins = wins + {0.W}, losses = losses + {0.L}, draws = draws + {0.D} WHERE id={0.Id}".format(p1s))
+    c.execute("UPDATE players SET wins = wins + {0.W}, losses = losses + {0.L}, draws = draws + {0.D} WHERE id={0.Id}".format(p2s))
 
     DB.commit()
     DB.close()
@@ -193,36 +193,36 @@ def play():
 def update_MW_OMW():
     DB = connect()
     c = DB.cursor()
-    #Update MW in players table
-    c.execute("update players set MW=(wins*3+draws)/(3*(wins + losses + draws))")
-    c.execute("update players set MW=0.333 where MW<0.333")
+    #UPDATE MW in players table
+    c.execute("UPDATE players SET MW=(wins*3+draws)/(3*(wins + losses + draws))")
+    c.execute("UPDATE players SET MW=0.333 WHERE MW<0.333")
     DB.commit()
 
-    #Update OMW in players table - (In multiple mini PSQL steps)
-    #   Create a temporary table OMW as an exact copy of opponenthistory,
-    #   add column omw,
+    #UPDATE OMW in players table - (In multiple mini PSQL steps)
+    #   Create a temporary table OMW AS an exact copy of opponenthistory,
+    #   ADD COLUMN omw,
     #   add corresponding MW of various columns contained by OMW to column omw
-    #   update players table with value of omw
-    c.execute("drop table if exists omw")
+    #   UPDATE players table with value of omw
+    c.execute('DROP TABLE IF EXISTS omw')
     DB.commit()
-    c.execute("create table omw as (select * from opponenthistory)")
+    c.execute("CREATE TABLE omw AS (SELECT * FROM opponenthistory)")
     DB.commit()
-    c.execute("select * from omw")
+    c.execute("SELECT * FROM omw")
     colnames = [desc[0] for desc in c.description]
     del colnames[0]
-    c.execute("alter table omw add column omw numeric(5,3)")
-    c.execute("update omw t1 set omw=0.000")
+    c.execute("ALTER TABLE omw ADD COLUMN omw NUMERIC(5,3)")
+    c.execute("UPDATE omw t1 SET omw=0.000")
     DB.commit()
     for col in colnames:
-        c.execute('update omw t1 set omw=t1.omw+(t2.mw/%(tot)s) from players t2 where t2.id=t1."%(col)s"'% {"tot": len(colnames), "col": col})
+        c.execute('UPDATE omw t1 SET omw=t1.omw+(t2.mw/%(tot)s) FROM players t2 WHERE t2.id=t1."%(col)s"'% {"tot": len(colnames), "col": col})
     DB.commit()
 
-    #Update OMW in players table - (In one PSQL query)
+    #UPDATE OMW in players table - (In one PSQL query)
     #   First reset column OMW to 0.000
-    #   Based on table opponenthistory, update the OMW column
+    #   Based on table opponenthistory, UPDATE the OMW column
 
     #Retrieve all the column names of table opponenthistory
-    c.execute("select * from opponenthistory")
+    c.execute("SELECT * FROM opponenthistory")
     colnames = [desc[0] for desc in c.description]
     #Remove id column.
     del colnames[0]
@@ -230,7 +230,7 @@ def update_MW_OMW():
     c.execute("UPDATE players t0 SET omw=0.000")
     DB.commit()
     #Loop through all the columns of opponenthistory,
-    #Look up the corresponding MW value from players table
+    #Look up the corresponding MW value FROM players table
     #Add that value to OMW column
     #Calculate average by dividing by amount of opponents faced so far
     for col in colnames:
@@ -238,10 +238,10 @@ def update_MW_OMW():
                      FROM (
                             SELECT t1.id, t2.mw FROM (
                                                         SELECT id, "%(col)s" FROM opponenthistory
-                                                     ) AS t1,
+                                                     )  AS t1,
                                                      (
                                                         SELECT "%(col)s", mw FROM players RIGHT OUTER JOIN opponenthistory ON (players.id=opponenthistory."%(col)s")
-                                                     ) AS t2
+                                                     )  AS t2
                                                 WHERE t1."%(col)s"=t2."%(col)s"
                            ) AS t3
                     WHERE t3.id=t0.id'''% {"tot": len(colnames), "col": col}
@@ -332,9 +332,9 @@ def display(table):
     DB = connect()
     c = DB.cursor()
     if table == "players":
-        c.execute("select * from players order by wins desc, omw desc")
+        c.execute("SELECT * FROM players ORDER BY wins DESC, omw DESC")
     else:
-        c.execute("select * from %s" % table)
+        c.execute("SELECT * FROM %s" % table)
     colnames = [desc[0] for desc in c.description] #Obtain the various column names of 'table'
     tableContents = c.fetchall()
     sizes = determine_column_sizes(colnames, tableContents)
