@@ -68,7 +68,7 @@ def initOpponentHistory():
 def addColumnToOpponentHist(matchid):
     DB = connect()
     c = DB.cursor()
-    c.execute('ALTER TABLE opponentHistory ADD COLUMN "%s" int',(matchid,))
+    c.execute('ALTER TABLE opponentHistory ADD COLUMN "%s" INT',(matchid,))
     DB.commit()
     DB.close()
 
@@ -81,9 +81,10 @@ def updateOpponentHistory(matchid, player, opponent):
     DB.close()
 
 def getOpponentHistory():
+    #Retrieve opponent history of all the players in the order of the current hierarchy from strongest to weakest players.
     DB = connect()
     c = DB.cursor()
-    c.execute('SELECT * FROM opponentHistory')
+    c.execute('SELECT o.* FROM opponenthistory o, players p WHERE o.id=p.id ORDER BY p.wins DESC, p.omw DESC')
     history = c.fetchall()
     DB.close()
     return history
@@ -151,7 +152,7 @@ def swissPairings():
     tmpStack = []
     records = playerStandings()
     history = getOpponentHistory()
-    #print history
+
     for i in xrange(0,len(records),2):
         playerHistory = [element for element in history if element[0] == records[i][0]]
         #print "for loop: ", records[i][0], " vs ", records[i+1][0], "Does ",records[i+1][0]," occur in list: ", playerHistory[0], any(d == records[i+1][0] for d in playerHistory[0])
@@ -276,6 +277,7 @@ def create_tournament():
         play()
         update_MW_OMW()
     display("players")
+    display("opponenthistory")
 
 def display(table):
 
