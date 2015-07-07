@@ -12,6 +12,31 @@ def connect():
     """Connect to the PostgreSQL database.  Returns a database connection."""
     return psycopg2.connect("dbname=tournament")
 
+def init():
+    DB = connect()
+    c = DB.cursor()
+    query = '''
+    CREATE OR REPLACE FUNCTION array_eliminate_doubles(arr int8[], other_arr int8[]) RETURNS int8[] AS $$
+    DECLARE
+    out_arr int8[];
+    el_idx int;
+    BEGIN
+        IF arr IS null or other_arr IS null THEN
+            RETURN arr;
+        END IF;
+
+        FOR el_idx IN array_lower(arr, 1)..array_upper(arr, 1) LOOP
+        IF NOT arr[el_idx] =any(other_arr) THEN
+            out_arr = array_append(out_arr, arr[el_idx]);
+        END IF;
+        END LOOP;
+        RETURN out_arr;
+    END;
+    $$ language plpgsql immutable;
+    '''
+    c.execute(query)
+    DB.close()
+
 def deleteMatches():
     """Remove all the match records from the database."""
     DB = connect()
@@ -352,5 +377,6 @@ def display(table):
     DB.close()
 
 if __name__ == '__main__':
+    init()
     create_tournament()
 

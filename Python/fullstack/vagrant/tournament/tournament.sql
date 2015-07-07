@@ -10,6 +10,7 @@ drop table if exists matches;
 drop table if exists players;
 drop table if exists opponenthistory;
 drop table if exists omw;
+drop table if exists potential_opponents;
 
 create table matches(
 id serial
@@ -23,4 +24,24 @@ losses numeric(2,0),
 draws numeric(2,0),
 MW numeric(4,3),
 OMW numeric(4,3)
+);
+
+create table potential_opponents(
+  id int,
+  "1" int,
+  "2" int,
+  "3" int,
+  "4" int,
+  "5" int,
+  "6" int,
+  "7" int,
+  "8" int,
+  "9" int,
+  "10" int,
+  "11" int,
+  "12" int,
+  "13" int,
+  "14" int,
+  "15" int,
+  "16" int
 );
