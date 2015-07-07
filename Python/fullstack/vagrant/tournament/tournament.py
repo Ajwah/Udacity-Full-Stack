@@ -15,7 +15,7 @@ def connect():
 def init():
     DB = connect()
     c = DB.cursor()
-    query = '''
+    q1 = '''
     CREATE OR REPLACE FUNCTION array_eliminate_doubles(arr int8[], other_arr int8[]) RETURNS int8[] AS $$
     DECLARE
     out_arr int8[];
@@ -34,7 +34,34 @@ def init():
     END;
     $$ language plpgsql immutable;
     '''
-    c.execute(query)
+
+    q2 = '''
+    CREATE OR REPLACE FUNCTION ARRAY_ZERO_DUPLICATES(arr int8[]) RETURNS int8[] AS $$
+    DECLARE
+    out_arr int8[];
+    el_idx int;
+    tmp int;
+    BEGIN
+        IF arr IS null THEN
+            RETURN arr;
+        END IF;
+        out_arr = array(arr[1])
+        FOR el_idx IN array_lower(arr, 1)..array_upper(arr, 1) LOOP
+              tmp = array_length(out_arr, 1);
+              RAISE NOTICE 'i want to print % and % and %', tmp, out_arr, arr;
+              IF (arr[el_idx] = any(other_arr)) IS DISTINCT FROM TRUE THEN
+                  RAISE NOTICE 'Processing: '; out_arr = array_append(out_arr, arr[el_idx]);
+              ELSE
+                  out_arr = array_append(out_arr, null);
+              END IF;
+        END LOOP;
+        RETURN out_arr;
+    END;
+    $$ language plpgsql immutable;
+    '''
+    c.execute(q1)
+    c.execute(q2)
+    DB.commit()
     DB.close()
 
 def deleteMatches():
