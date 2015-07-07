@@ -48,9 +48,8 @@ def init():
         out_arr = array(arr[1])
         FOR el_idx IN array_lower(arr, 1)..array_upper(arr, 1) LOOP
               tmp = array_length(out_arr, 1);
-              RAISE NOTICE 'i want to print % and % and %', tmp, out_arr, arr;
               IF (arr[el_idx] = any(other_arr)) IS DISTINCT FROM TRUE THEN
-                  RAISE NOTICE 'Processing: '; out_arr = array_append(out_arr, arr[el_idx]);
+                  out_arr = array_append(out_arr, arr[el_idx]);
               ELSE
                   out_arr = array_append(out_arr, null);
               END IF;
@@ -241,6 +240,26 @@ def play():
                 reportMatch(pairings[i][2],pairings[i][0], False)
             else:
                 reportMatch(pairings[i][0],pairings[i][2], True)
+def determine_opponents():
+    DB = connect()
+    c = DB.cursor()
+    q = '''
+    CREATE TABLE tmp AS
+          SELECT id, opp[1] "1", opp[2] "2", opp[3] "3", opp[4] "4", opp[5] "5", opp[6] "6", opp[7] "7", opp[8] "8", opp[9] "9", opp[10] "10", opp[11] "11"
+          FROM (SELECT t.id,
+                       array_remove_plpgsql(
+                                            array(SELECT id
+                                                  FROM players
+                                                  ORDER BY wins DESC, omw DESC),
+                                            ARRAY[t.Id::int, "1"::int, "2"::int, "3"::int, "4"::int]) AS opp
+                FROM opponenthIStory AS t, (SELECT id, wins, omw
+                                            FROM players) AS p
+                WHERE t.id=p.id
+                ORDER BY p.wins DESC, p.omw DESC) AS b;
+    '''
+    c.execute(q)
+    DB.commit()
+    DB.close()
 
 def update_MW_OMW():
     DB = connect()
