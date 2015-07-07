@@ -45,9 +45,7 @@ def init():
         IF arr IS null THEN
             RETURN arr;
         END IF;
-        out_arr = array(arr[1])
         FOR el_idx IN array_lower(arr, 1)..array_upper(arr, 1) LOOP
-              tmp = array_length(out_arr, 1);
               IF (arr[el_idx] = any(other_arr)) IS DISTINCT FROM TRUE THEN
                   out_arr = array_append(out_arr, arr[el_idx]);
               ELSE
@@ -202,6 +200,7 @@ def swissPairings():
     tmpStack = []
     records = playerStandings()
     history = getOpponentHistory()
+    determine_opponents()
     #print history
     for i in xrange(0,len(records),2):
         playerHistory = [element for element in history if element[0] == records[i][0]]
@@ -222,6 +221,9 @@ def swissPairings():
         updateOpponentHistory(global_tmp, records[i][0], records[i+1][0])
     return swiss_pairings
 
+def get_amount_matches():
+    return global_tmp
+
 def play():
     global global_tmp
     global_tmp += 1
@@ -240,24 +242,40 @@ def play():
                 reportMatch(pairings[i][2],pairings[i][0], False)
             else:
                 reportMatch(pairings[i][0],pairings[i][2], True)
+
 def determine_opponents():
     DB = connect()
     c = DB.cursor()
+    amount_matches = get_amount_matches()
+    amount_players = countPlayers()
+    d1 = ""
+    for i in xrange(0, amount_players):
+        d1 += 'opp[{0}] "{0}", '.format(str(i+1)) if  i + 1 < amount_players else 'opp[{0}] "{0}"'.format(str(i+1))
+
+    d2 = ""
+    for i in xrange(0, amount_matches):
+        d2 += '"{0}"::int, '.format(str(i+1)) if  i + 1 < amount_matches else '"{0}"::int'.format(str(i+1))
+
+    TournamentData = namedtuple('TournamentData', 'players matches')
+    td = TournamentData(d1, d2)
+    c.execute("drop table if exists tmp")
+    DB.commit()
+
     q = '''
     CREATE TABLE tmp AS
-          SELECT id, opp[1] "1", opp[2] "2", opp[3] "3", opp[4] "4", opp[5] "5", opp[6] "6", opp[7] "7", opp[8] "8", opp[9] "9", opp[10] "10", opp[11] "11"
+          SELECT id, {0.players}
           FROM (SELECT t.id,
                        array_remove_plpgsql(
                                             array(SELECT id
                                                   FROM players
                                                   ORDER BY wins DESC, omw DESC),
-                                            ARRAY[t.Id::int, "1"::int, "2"::int, "3"::int, "4"::int]) AS opp
+                                            ARRAY[t.Id::int, {0.matches}]) AS opp
                 FROM opponenthIStory AS t, (SELECT id, wins, omw
                                             FROM players) AS p
                 WHERE t.id=p.id
                 ORDER BY p.wins DESC, p.omw DESC) AS b;
     '''
-    c.execute(q)
+    c.execute(q.format(td))
     DB.commit()
     DB.close()
 
