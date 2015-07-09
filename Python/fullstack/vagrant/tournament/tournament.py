@@ -156,6 +156,17 @@ def swissPairings():
         id2: the second player's unique id
         name2: the second player's name
     """
+    def excludeRepeats(original, extrasToExclude):
+       result = [x for x in original if not (x in extrasToExclude)]
+       result.insert(0, extrasToExclude[0])
+       return result
+
+    def getPotentialOpponents(hierarchy, history):
+       #Convert multiple tuples into one long tuple
+       hierarchy = sum(hierarchy, ())
+       result = [excludeRepeats(hierarchy, x) for x in history]
+       # print result
+       return result
 
     def display(m,n):
       def stringify(ch, a):
