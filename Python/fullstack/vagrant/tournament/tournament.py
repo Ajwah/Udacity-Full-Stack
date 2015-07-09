@@ -209,6 +209,15 @@ def swissPairings():
       display(r, "JOINED BACK: ")
       return r
 
+    def produceOpponents(m):
+        h = [row[0] for row in m]
+        o = [row[1] for row in m]
+        print h
+        print o
+        assert len(h)==len(list(set(h))), "Not equal"
+        assert len(o)==len(list(set(o))), "Not equal"
+        return zip(*[h, o])
+
     def getPotentialOpponents(hierarchy, history):
        def excludeRepeats(original, extrasToExclude):
               result = [x for x in original if not (x in extrasToExclude)]
