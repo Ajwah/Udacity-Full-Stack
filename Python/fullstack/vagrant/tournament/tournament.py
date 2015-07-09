@@ -156,12 +156,64 @@ def swissPairings():
         id2: the second player's unique id
         name2: the second player's name
     """
-    def excludeRepeats(original, extrasToExclude):
-       result = [x for x in original if not (x in extrasToExclude)]
-       result.insert(0, extrasToExclude[0])
-       return result
+    def reduceAll(r):
+      def deleteRepeats(m, p):
+        d = m[p][1]
+        opponentId = m[p][0]
+        r = []
+        print "To delete: ", d, "Corresponding Opponent: ", opponentId
+        for i in xrange(0, len(m)):
+          row = []
+          for j in xrange(0, len(m[i])):
+            # print m[i][j]
+            # Copy values as long as current value not equal to d or equal to d, but on location [p][1]
+            if m[i][j] != d or (i == p and j == 1) or j == 0:
+              if m[i][0] == d and j==1:
+                row.append(opponentId)
+              else:
+                row.append(m[i][j])
+          r.append(row)
+        print "Deleted: ", d
+        display(r, 'result ')
+        print r
+        assert sum([row.count(d) for row in r]) == 2, "Deleted key found more than two times: %s"% r.count(d)
+        return r
+
+      def split_list(a_list):
+        half = len(a_list)/2
+        return a_list[:half], a_list[half:]
+
+      def rev(r):
+        id = [r[0]]
+        del r[0]
+        res = id + list(reversed(r))
+        return res
+
+      max = len(r)
+      for i in xrange(0,max/2):
+        print len(r[max-1]), len(r[max-2])
+        r = deleteRepeats(r,i)
+      #TO DO: Split r into two tables, r1 and r2
+      #       keep r1 as is
+      #       rev r2
+      #       r2 to be processed from bottom up (sorting by weakest)
+      #       extract pairs from both r1 and r2 from col 0 1
+      print "split"
+      r1, r2 = split_list(r)
+      r2 = [rev(x) for x in r2]
+      r = r1 + r2
+      for i in xrange(max-1,max/2-1,-1):
+        # print len(r[max-1]), len(r[max-2])
+        print "Delete Repeat: ", r[i][1], i
+        r = deleteRepeats(r,i)
+      display(r, "JOINED BACK: ")
+      return r
 
     def getPotentialOpponents(hierarchy, history):
+       def excludeRepeats(original, extrasToExclude):
+              result = [x for x in original if not (x in extrasToExclude)]
+              result.insert(0, extrasToExclude[0])
+              return result
        #Convert multiple tuples into one long tuple
        hierarchy = sum(hierarchy, ())
        result = [excludeRepeats(hierarchy, x) for x in history]
