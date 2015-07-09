@@ -76,7 +76,7 @@ def updateOpponentHistory(matchid, player, opponent):
     DB = connect()
     c = DB.cursor()
     c.execute('UPDATE opponenthistory SET "%(m_id)s"=%(opponent_id)s WHERE id=%(player_id)s' % {"m_id": matchid, "opponent_id": opponent, "player_id": player})
-    c.execute('UPDATE opponenthistory SET "%(m_id)s"=%(player_id)s WHERE id=%(opponent_id)s' % {"m_id": matchid, "opponent_id": opponent, "player_id": player})
+    # c.execute('UPDATE opponenthistory SET "%(m_id)s"=%(player_id)s WHERE id=%(opponent_id)s' % {"m_id": matchid, "opponent_id": opponent, "player_id": player})
     DB.commit()
     DB.close()
 
@@ -88,6 +88,14 @@ def getOpponentHistory():
     history = c.fetchall()
     DB.close()
     return history
+
+def getCurrentPlayersHierarchy():
+    DB = connect()
+    c = DB.cursor()
+    c.execute("SELECT id FROM players ORDER BY wins DESC, OMW DESC")
+    hierarchy = c.fetchall()
+    DB.close()
+    return hierarchy
 
 def playerStandings():
     """Returns a list of the players and their win records, sorted by wins.
@@ -148,28 +156,34 @@ def swissPairings():
         id2: the second player's unique id
         name2: the second player's name
     """
+
+    def display(m,n):
+      def stringify(ch, a):
+        s = ''
+        for i in xrange(0,a):
+            s += ch
+        return s
+      print
+      print n
+      for x in m:
+        s='                 |'
+        for y in x:
+          p = str(y)
+          sp = stringify(' ', 3 - len(p) / 2)
+          s += p + sp + '| '
+        print s
+
     swiss_pairings = []
     tmpStack = []
     records = playerStandings()
     history = getOpponentHistory()
-
-    for i in xrange(0,len(records),2):
-        playerHistory = [element for element in history if element[0] == records[i][0]]
-        #print "for loop: ", records[i][0], " vs ", records[i+1][0], "Does ",records[i+1][0]," occur in list: ", playerHistory[0], any(d == records[i+1][0] for d in playerHistory[0])
-        #print i+1, len(records), len(playerHistory[0])
-        #print
-        while any(d == records[i+1][0] for d in playerHistory[0]) and (i < len(records) - 2):
-            #print 'before', i+1, len(records), len(playerHistory[0])
-            tmpStack.append(records[i+1])
-            records.remove(records[i+1])
-            #print i+1, len(records), len(playerHistory[0])
-            #print "        while loop:", tmpStack, records
-        if tmpStack != []:
-            records[i+2:i+2] = tmpStack
-            tmpStack = []
-
-        swiss_pairings.append((records[i][0], records[i][1], records[i+1][0], records[i+1][1]))
-        updateOpponentHistory(global_tmp, records[i][0], records[i+1][0])
+    opponents = produceOpponents(reduceAll(getPotentialOpponents(getCurrentPlayersHierarchy(), history)))
+    # print "RECORDS: ", records
+    # records = pairUp(sum(getCurrentPlayersHierarchy(), ()), opponents)
+    display(opponents,'Opponents')
+    for pair in opponents:
+        swiss_pairings.append((pair[0], "Gnam", pair[1], "Mang"))
+        updateOpponentHistory(global_tmp, pair[0], pair[1])
     return swiss_pairings
 
 def play():
@@ -276,8 +290,8 @@ def create_tournament():
     for i in xrange(0,int(math.floor(math.log(len(playerStandings()),2)))):
         play()
         update_MW_OMW()
-    display("players")
-    display("opponenthistory")
+        display("players")
+        display("opponenthistory")
 
 def display(table):
 
@@ -335,6 +349,8 @@ def display(table):
     c = DB.cursor()
     if table == "players":
         c.execute("SELECT * FROM players ORDER BY wins DESC, omw DESC")
+    elif table == "opponenthistory":
+        c.execute('SELECT o.* FROM opponenthistory o, players p WHERE o.id=p.id ORDER BY p.wins DESC, p.omw DESC')
     else:
         c.execute("SELECT * FROM %s" % table)
     colnames = [desc[0] for desc in c.description] #Obtain the various column names of 'table'
