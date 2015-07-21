@@ -2,6 +2,7 @@
 #
 # tournament.py -- implementation of a Swiss-system tournament
 
+
 import psycopg2
 import random
 import math
@@ -80,14 +81,37 @@ def updateOpponentHistory(matchid, player, opponent):
     DB.commit()
     DB.close()
 
-def getOpponentHistory():
+def getMainColumnsPlayersTable():
+    DB = connect()
+    c = DB.cursor()
+    c.execute('SELECT id, name, mw FROM players ORDER BY mw DESC, omw DESC')
+    columns = c.fetchall()
+    DB.close()
+    return columns
+
+def getOpponentHistory(briefly=True,column="1"):
     #Retrieve opponent history of all the players in the order of the current hierarchy from strongest to weakest players.
     DB = connect()
     c = DB.cursor()
-    c.execute('SELECT o.* FROM opponenthistory o, players p WHERE o.id=p.id ORDER BY p.wins DESC, p.omw DESC')
+    if briefly:
+        c.execute('SELECT o.* FROM opponenthistory o, players p WHERE o.id=p.id ORDER BY p.mw DESC, p.omw DESC')
+    else:
+        if len(getColumnsTable('opponenthistory')) == 1:
+            DB.close()
+            return []
+        else:
+            c.execute('SELECT A.id, A.name, A.mw, B."{0}",B.name,B.mw FROM (SELECT o.id, name, mw, omw FROM opponenthistory o, players p where o.id=p.id ORDER BY mw DESC, omw DESC) as A JOIN (SELECT z.id, q.name, "{0}", q.mw FROM (SELECT o.id, "{0}",pl.name, pl.mw FROM opponenthistory o, players pl WHERE o.id=pl.id) z, players q WHERE "{0}"=q.id) AS B ON A.id=B.id ORDER BY A.mw DESC, A.omw DESC'.format(column))
     history = c.fetchall()
     DB.close()
     return history
+
+def getColumnsTable(table):
+    DB = connect()
+    c = DB.cursor()
+    c.execute("SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '%s'"%table)
+    columns = c.fetchall()
+    DB.close()
+    return columns
 
 def playerStandings():
     """Returns a list of the players and their win records, sorted by wins.
@@ -104,7 +128,7 @@ def playerStandings():
     """
     DB = connect()
     c = DB.cursor()
-    c.execute("SELECT id, name, wins, losses, draws, MW, OMW FROM players ORDER BY wins DESC")
+    c.execute("SELECT id, name, wins, losses, draws, MW, OMW FROM players ORDER BY mw DESC, omw DESC")
     records = c.fetchall()
     DB.close()
     return records
@@ -148,6 +172,7 @@ def swissPairings():
         id2: the second player's unique id
         name2: the second player's name
     """
+
     swiss_pairings = []
     tmpStack = []
     records = playerStandings()
@@ -334,7 +359,7 @@ def display(table):
     DB = connect()
     c = DB.cursor()
     if table == "players":
-        c.execute("SELECT * FROM players ORDER BY wins DESC, omw DESC")
+        c.execute("SELECT * FROM players ORDER BY mw DESC, omw DESC")
     else:
         c.execute("SELECT * FROM %s" % table)
     colnames = [desc[0] for desc in c.description] #Obtain the various column names of 'table'
